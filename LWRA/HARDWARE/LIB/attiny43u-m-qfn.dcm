@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP ATTINY43U-M-QFN
+D MLF/QFN20, 4k Flash, 256B SRAM, 64B EEPROM
+K AVR 8bit Microcontroller tinyAVR Battery Boost
+F http://www.atmel.com/Images/doc8048.pdf
+$ENDCMP
+#
+#End Doc Library

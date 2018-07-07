@@ -1,0 +1,10 @@
+#!/bin/bash                                                                     
+echo "MCU:  $1"
+echo "FILE: $2"
+echo "FILETYPE: $3"
+avr-gcc -mmcu=$1 $2.$3 -o $2.o -Os
+avr-objcopy -j .text -j .data -O ihex $2.o $2.hex
+avrdude -p $1 usbtiny -e -U flash:w:$2.hex -c usbtiny
+rm $2.o
+rm $2.hex
+echo done

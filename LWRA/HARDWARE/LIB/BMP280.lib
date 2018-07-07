@@ -1,0 +1,34 @@
+EESchema-LIBRARY Version 2.3
+#encoding utf-8
+#(c) SnapEDA 2016 (snapeda.com)
+#This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA) with Design Exception 1.0
+#
+# BMP280
+#
+DEF BMP280 U 0 40 N Y 1 L N
+F0 "U" 0 0 50 H I L CNN
+F1 "BMP280" 0 0 50 H I L CNN
+F2 "LGA-8" 0 0 50 H I L CNN
+F3 "Bosch" 0 0 50 H I L CNN "MF"
+F4 "2.16 USD" 0 0 50 H I L CNN "Price"
+F5 "Good" 0 0 50 H I L CNN "Availability"
+F6 "None" 0 0 50 H I L CNN "Package"
+F7 "BMP280" 0 0 50 H I L CNN "MP"
+F8 "BMP280 Absolute Barometric Pressure Sensor for Battery Powered Devices 2 x 2.5mm" 0 0 50 H I L CNN "Description"
+DRAW
+P 2 0 0 10 -400 300 -400 -300 N
+P 2 0 0 10 -400 -300 400 -300 N
+P 2 0 0 10 400 -300 400 300 N
+P 2 0 0 10 400 300 -400 300 N
+X VCC P2 -500 200 100 R 40 40 0 0 B 
+X VCC P6 -500 200 100 R 40 40 0 0 B 
+X VCC P8 -500 200 100 R 40 40 0 0 B 
+X GND P1 -500 -200 100 R 40 40 0 0 B 
+X GND P7 -500 -200 100 R 40 40 0 0 B 
+X SDA P3 500 200 100 L 40 40 0 0 B 
+X SCL P4 500 100 100 L 40 40 0 0 B 
+X ADDR P5 500 -200 100 L 40 40 0 0 B 
+ENDDRAW
+ENDDEF
+#
+# End Library
