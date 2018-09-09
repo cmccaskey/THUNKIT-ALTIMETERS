@@ -1,4 +1,5 @@
 #pyinstaller --onefile --icon=lightning.png THUNKIT_GAIT.pyw
+#serial group issues on linux
 
 from tkinter import *
 from tkinter import ttk
@@ -50,6 +51,7 @@ def downloadData():
     comPort = str(selectedPort)[0: portCrop]
     comPort = comPort.replace("('", '') #Windows
     comPort = comPort.replace("'", '') #Windows
+    print(comPort)
     try:
         global ser
         ser = serial.Serial(comPort, 9600)
