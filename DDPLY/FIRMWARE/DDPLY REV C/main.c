@@ -233,7 +233,14 @@ int main() {
     altitudeOld = altitudeNew;
 
     if (verboseLogging) { //data logging to UART0
-      uart0_printInt(altitudeNew);
+      uart0_putchar('T');
+      uart0_printInt20_t(BMP_Temperature());
+      uart0_putchar('\n');
+      uart0_putchar('P');
+      uart0_printInt20_t(BMP_Pressure());
+      uart0_putchar('\n');
+      uart0_putchar('A');
+      uart0_printInt20_t(altitudeNew);
       uart0_putchar('\n');
     }
 

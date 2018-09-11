@@ -1,17 +1,17 @@
 char SPI_RW_8(unsigned char reg_A, unsigned char reg_B) {
-  PORTA &= ~(1 << PA3); //SS low
+  PORTA &= ~(1 << PA7); //SS low
   SPDR = reg_A;
   while (!(SPSR & (1 << SPIF)));
   SPDR = reg_B;
   while (!(SPSR & (1 << SPIF)));
-  PORTA |= (1 << PA3); //SS high
+  PORTA |= (1 << PA7); //SS high
   //_delay_ms(15);
   return SPDR;
 }
 
 int16_t BMP_Burst_Read_16(char startReg) {
   int16_t data = 0;
-  PORTA &= ~(1 << PA3); //SS low
+  PORTA &= ~(1 << PA7); //SS low
   SPDR = startReg;
   while (!(SPSR & (1 << SPIF)));
   SPDR = 0x00; //shift clock
@@ -22,7 +22,7 @@ int16_t BMP_Burst_Read_16(char startReg) {
   int16_t SPDRShift = SPDR;
   SPDRShift <<= 8;
   data |= SPDRShift; //MSB
-  PORTA |= (1 << PA3); //SS high
+  PORTA |= (1 << PA7); //SS high
   return data;
 }
 
@@ -60,7 +60,7 @@ char SPI_Transfer(char c) {
 
 int32_t BMP_Burst_Read_20(char start) {
   int32_t data = 0;
-  PORTA &= ~(1 << PA3); //SS low
+  PORTA &= ~(1 << PA7); //SS low
   SPDR =  start | 0x80; //temp MSB
   while (!(SPSR & (1 << SPIF)));
   SPDR = 0x00;
@@ -75,7 +75,7 @@ int32_t BMP_Burst_Read_20(char start) {
   while (!(SPSR & (1 << SPIF)));
   data |= SPDR;
   data >>= 4;
-  PORTA |= (1 << PA3); //SS high
+  PORTA |= (1 << PA7); //SS high
   //_delay_ms(15);
   return data;
 }

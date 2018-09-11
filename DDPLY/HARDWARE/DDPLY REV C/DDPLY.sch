@@ -725,65 +725,6 @@ Wire Wire Line
 	5500 5400 5400 5400
 Wire Wire Line
 	5400 5500 5500 5500
-Text GLabel 5500 5600 2    47   UnSpc ~ 0
-9V/6
-Wire Wire Line
-	5500 5600 5400 5600
-$Comp
-L R R5
-U 1 1 59DAE6E8
-P 6100 1400
-F 0 "R5" H 6200 1400 50  0000 C CNN
-F 1 "10K" V 6100 1400 50  0000 C CNN
-F 2 "Resistors_SMD:R_0603" V 6030 1400 50  0001 C CNN
-F 3 "" H 6100 1400 50  0000 C CNN
-	1    6100 1400
-	1    0    0    -1  
-$EndComp
-$Comp
-L R R6
-U 1 1 59DAE74D
-P 6100 1800
-F 0 "R6" H 6200 1800 50  0000 C CNN
-F 1 "2K" V 6100 1800 50  0000 C CNN
-F 2 "Resistors_SMD:R_0603" V 6030 1800 50  0001 C CNN
-F 3 "" H 6100 1800 50  0000 C CNN
-	1    6100 1800
-	1    0    0    -1  
-$EndComp
-$Comp
-L +9V #PWR028
-U 1 1 59DAE7B2
-P 6100 1150
-F 0 "#PWR028" H 6100 1000 50  0001 C CNN
-F 1 "+9V" H 6100 1290 50  0000 C CNN
-F 2 "" H 6100 1150 50  0000 C CNN
-F 3 "" H 6100 1150 50  0000 C CNN
-	1    6100 1150
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	6100 1150 6100 1250
-Wire Wire Line
-	6100 1550 6100 1650
-$Comp
-L GND #PWR029
-U 1 1 59DAEB68
-P 6100 2050
-F 0 "#PWR029" H 6100 1800 50  0001 C CNN
-F 1 "GND" H 6100 1900 50  0000 C CNN
-F 2 "" H 6100 2050 50  0000 C CNN
-F 3 "" H 6100 2050 50  0000 C CNN
-	1    6100 2050
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	6100 2050 6100 1950
-Text GLabel 6200 1600 2    47   UnSpc ~ 0
-9V/6
-Wire Wire Line
-	6200 1600 6100 1600
-Connection ~ 6100 1600
 Text GLabel 5500 6400 2    47   Output ~ 0
 E-MATCH_1
 Text GLabel 5500 6300 2    47   Output ~ 0
@@ -945,14 +886,12 @@ Wire Wire Line
 	7750 3800 7750 3900
 Text GLabel 5500 6200 2    47   Input ~ 0
 CONT_1
-Text GLabel 5500 6600 2    47   Input ~ 0
+Text GLabel 5500 5600 2    47   Input ~ 0
 CONT_2
 Wire Wire Line
 	5500 6200 5400 6200
 Wire Wire Line
-	5500 6600 5400 6600
-Wire Wire Line
-	5400 6600 5400 6500
+	5500 5600 5400 5600
 Text GLabel 7850 3450 2    47   Output ~ 0
 CONT_1
 Text GLabel 9800 3450 2    47   Output ~ 0
@@ -1061,4 +1000,6 @@ $EndComp
 Wire Wire Line
 	8600 1950 8600 1850
 Connection ~ 8600 1850
+Text Notes 7900 4150 0    60   ~ 0
+Add Tantalum capacitor\nMaybe remov elec.\n
 $EndSCHEMATC
