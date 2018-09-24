@@ -1,4 +1,4 @@
-update=Sun 08 Oct 2017 01:14:46 PM EDT
+update=Mon 24 Sep 2018 07:35:11 PM EDT
 version=1
 last_client=kicad
 [pcbnew]
@@ -69,3 +69,13 @@ LibName37=/home/cameron/Desktop/ELECTRONICS PROJECTS/HARDWARE/ALTIMETERS/LIB/stm
 LibName38=/home/cameron/Desktop/ELECTRONICS PROJECTS/HARDWARE/ALTIMETERS/LIB/xc9140a331mr-g
 LibName39=/home/cameron/Desktop/ELECTRONICS PROJECTS/HARDWARE/ALTIMETERS/LIB/xc9140a331mr-g_fixed
 LibName40=/home/cameron/Desktop/ELECTRONICS PROJECTS/HARDWARE/ALTIMETERS/LIB/spi_eeprom
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=Pcbnew
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=47
