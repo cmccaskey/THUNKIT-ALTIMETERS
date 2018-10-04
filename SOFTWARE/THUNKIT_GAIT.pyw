@@ -115,9 +115,16 @@ def downloadData():
     tempTicks = list(altitudeGraph.get_yticks())
     tempTicks[-1] = max(y_axis)
     tempTicks[0] = min(y_axis)
+    scaleVar = (tempTicks[-1] - tempTicks[0]) / 20 # this prevents overlap adjust as needed
+    print(scaleVar)
+    if abs(tempTicks[-1] - tempTicks[-2]) < scaleVar:
+        tempTicks.pop(-2) #pop if values are too close and overlap
+    if abs(tempTicks[0] - tempTicks[1]) < scaleVar:
+        tempTicks.pop(1)
     altitudeGraph.set_yticks(tempTicks) #add apogee and min tick
-    print(x_axis)
-    print(y_axis)
+    altitudeGraph.set_yticklabels(tempTicks) #add apogee and min label
+    #print(x_axis)
+    #print(y_axis)
     canvas.draw()
     print("Done downloading.")
     updatePorts() #Windows bug can't download data twice without re-selecting
@@ -185,7 +192,7 @@ buttonRefresh.pack(side = tk.RIGHT, fill = tk.BOTH, padx = (0,10), pady = (5,0))
 dropdownPort.pack(side = tk.RIGHT, fill = tk.BOTH, padx = (0,5), pady = (5,0))
 
 canvas.get_tk_widget().pack(side=tk.BOTTOM, expand=False)
-canvas._tkcanvas.pack(side=tk.BOTTOM, expand=False, ipadx = 50, ipady = 50)
+canvas._tkcanvas.pack(side=tk.BOTTOM, expand=False, ipadx = 100, ipady = 30)
 
 
 
