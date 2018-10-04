@@ -96,6 +96,7 @@ void blinkAltitude(void){
 			maxAltitude = currentAltitude;
 		}
 	}
+	maxAltitude -= 1000;
 	int altitudeBlinks[] = {-1, -1, -1, -1, -1};
 	for (i = 4; i >= 0; i --){
 		if (maxAltitude % 10 == 0){

@@ -1,3 +1,0 @@
-#!/bin/bash                                                                     
-avrdude -p t841 -U lfuse:w:0xE2:m -U hfuse:w:0xdf:m -U efuse:w:0xfd:m -c usbtiny
-echo done

@@ -7,19 +7,21 @@
 #define LED_ON PORTA |= (1 << PA0)
 #define LED_OFF PORTA &= ~(1 << PA0)
 
-#define launchTrigger 50 //feet in 200mS
+#define launchTrigger 5 //meters one polling cycle
 #define bootDelay 5000 //delay in mS
-#define pollingDelay 200 //mS
+//#define pollingDelay 191 //mS
+#define pollingDelay 91
 
 #define altitudeOffset 1000
 
-#define expWeight 0.5 //closer to 0 favors old var, closer to 1 favors new var
+#define expWeight 0.9 //closer to 0 favors old var, closer to 1 favors new var
 
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <avr/sleep.h>
 #include <stdbool.h>
 #include <avr/power.h>
 #include "Libraries/BMP280.h"
@@ -29,6 +31,7 @@ bool LED = false;
 bool lowBattery = false;
 int LEDTimer = 0;
 bool launch = false;
+uint32_t altitudeLog[] = {0, 0, 0, 0, 0};
 
 void SPI_Master_Init(void) {
   DDRA |= (1 << DDA4) | (1 << DDA6) | (1 << DDA7);
@@ -95,6 +98,7 @@ void blinkAltitude(void){
 			maxAltitude = currentAltitude;
 		}
 	}
+	maxAltitude -= eeprom_read_word((uint16_t * ) 12);
 	int altitudeBlinks[] = {-1, -1, -1, -1, -1};
 	for (i = 4; i >= 0; i --){
 		if (maxAltitude % 10 == 0){
@@ -114,6 +118,14 @@ void blinkAltitude(void){
 		}
 		delay_ms(1500);
 	}
+}
+
+void altitudeLogPush(uint32_t push){
+	int i;
+	for (i = 0; i < 4; i ++){
+		altitudeLog[i] = altitudeLog[i + 1];
+	}
+	altitudeLog[4] = push;
 }
 
 int main() {
@@ -148,15 +160,15 @@ int main() {
   BMP_Normal_Mode();
   delay_ms(100);
   BMP_Set_Calib_Vars();
-  blinkAltitude();
+  //blinkAltitude();
   delay_ms(bootDelay); //give time for things to settle
   sei();
   int vccCal = eeprom_read_word((uint16_t * ) 0);
   BMP_Pressure_Cal = (float) BMP_Pressure();
   uint32_t altitudeOld = BMP_Altitude(); //init this variable
-  int eepromIndex = 14;
+  int eepromIndex = 20;
   while (1) {
-    uart0_putchar('\n');
+    //uart0_putchar('\n');
     /*    CHECK UART    */
     if ((UCSR0A & (1 << RXC0))) {
       char UDRData = UDR0;
@@ -192,8 +204,6 @@ int main() {
 				delay_ms(100);
       }
       if (UDRData == 'd') { //download flight data
-        uart0_putchar('d');
-        uart0_putchar('\n');
         int i;
         for (i = 12; i < 512; i += 2) {
           uint16_t altitudeData = eeprom_read_word((uint16_t * ) i);
@@ -206,6 +216,7 @@ int main() {
 
     /*    EXPONENTIAL FILTER    */
     uint32_t altitudeNew = expWeight * BMP_Altitude() + (1.0 - expWeight) * altitudeOld;
+    altitudeLogPush(altitudeNew); //push altitudeNew into the pre launch buffer
 
     /*    DETECT LAUNCH AVERAGE    */
     if (!launch) {
@@ -214,13 +225,16 @@ int main() {
         cli(); //disable LED ISR
         launch = true;
         int i;
-        for (i = 12; i < 512; i += 2) {
-          eeprom_write_word((uint16_t * ) i, (uint16_t) 1000);
-        }
-        eeprom_write_word((uint16_t * ) 12, (uint16_t) altitudeOld);
+      //for (i = 12; i < eepromIndex; i += 2){
+      	//eeprom_write_word((uint16_t * ) i, (uint16_t) altitudeLog[(i - 12) / 2]);
+      //}
+        //for (i = eepromIndex; i < 512; i += 2) {
+          //eeprom_write_word((uint16_t * ) i, (uint16_t) altitudeLog[0]);
+        //}
+        //eeprom_write_word((uint16_t * ) 12, (uint16_t) altitudeOld);
       }
     }
-    altitudeOld = altitudeNew;
+
 
     /*    LOG DATA DURING LAUNCH    */
 
@@ -230,8 +244,13 @@ int main() {
       if (eepromIndex < 512) {
         eeprom_write_word((uint16_t * ) eepromIndex, (uint16_t) altitudeNew);
         eepromIndex += 2;
-      }
+      } else {
+		  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  		sleep_mode();
+	}
     }
+
+        altitudeOld = altitudeNew;
 
     /*    LOW BATTERY WARNING    */
     if (!launch) {
@@ -259,4 +278,3 @@ ISR(TIMER0_OVF_vect) { //blinks status LED
   }
   sei();
 }
-

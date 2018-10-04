@@ -1,3 +1,16 @@
+#define F_CPU 8000000UL
+
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/eeprom.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
+#include <avr/sleep.h>
+#include <stdbool.h>
+#include <avr/power.h>
+
+#define altitudeOffset 1000
+
 char SPI_RW_8(unsigned char reg_A, unsigned char reg_B) {
   PORTA &= ~(1 << PA7); //SS low
   SPDR = reg_A;
