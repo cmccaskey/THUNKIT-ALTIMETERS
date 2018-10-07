@@ -1,20 +1,4 @@
-//default fuses: avrdude_p t841_U lfuse:w:0x62:m_U hfuse:w:0xdf:m_U efuse:w:0xff:m_c usbtiny
-//clkdiv8 avrdude_p t841_U lfuse:w:0xE2:m_U hfuse:w:0xdf:m_U efuse:w:0xff:m_c usbtiny
-//clkdiv8 and BOD ~1.7V avrdude -p t841 -U lfuse:w:0xE2:m -U hfuse:w:0xdf:m -U efuse:w:0xfd:m -c usbtiny
-
 #define F_CPU 8000000UL
-
-#define LED_ON PORTA |= (1 << PA0)
-#define LED_OFF PORTA &= ~(1 << PA0)
-
-#define launchTrigger 5 //meters one polling cycle
-#define bootDelay 5000 //delay in mS
-//#define pollingDelay 191 //mS
-#define pollingDelay 91
-
-#define altitudeOffset 1000
-
-#define expWeight 0.9 //closer to 0 favors old var, closer to 1 favors new var
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -25,18 +9,37 @@
 #include <stdbool.h>
 #include <avr/power.h>
 #include "Libraries/BMP280.h"
-#include "Libraries/DELAYLONG.c"
+
+#define LED_OUTPUT DDRA |= (1 << DDA0)
+#define LED_ON PORTA |= (1 << PA0)
+#define LED_OFF PORTA &= ~(1 << PA0)
+
+#define BMP_CS_OUTPUT  DDRA |= (1 << DDA7)
+#define BMP_CS_LOW PORTA &= ~(1 << PA7)
+#define BMP_CS_HIGH PORTA |= (1 << PA7)
+
+//these set the launch threshold to 5 meters in 1 second
+//5 meters (launchTrigger), 200mS (pollingDelay + loop time) x 5 samples (num. elements in altitudeLog)
+#define launchTrigger 5 //meters between altitudeLog
+#define pollingDelay 191 //mS
+uint32_t altitudeLog[] = {0, 0, 0, 0, 0};
+
+#define bootDelay 5000 //delay in mS
+
+#define altitudeOffset 1000 //instead of logging signed values to eeprom, log unsigned with a small offset to prevent negatives
+
+#define expWeight 1.0 //closer to 0 favors old var, closer to 1 favors new var
 
 bool LED = false;
 bool lowBattery = false;
 int LEDTimer = 0;
 bool launch = false;
-uint32_t altitudeLog[] = {0, 0, 0, 0, 0};
 
 void SPI_Master_Init(void) {
-  DDRA |= (1 << DDA4) | (1 << DDA6) | (1 << DDA7);
+  DDRA |= (1 << DDA4) | (1 << DDA6);
   SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0);
-  PORTA |= (1 << PA7); //SS high
+  BMP_CS_OUTPUT;
+  BMP_CS_HIGH;
 }
 
 void uart0_putchar(char c) {
@@ -47,7 +50,8 @@ void uart0_putchar(char c) {
 void uart0_init(void) {
   UCSR0C |= ((1 << UCSZ01) | (1 << UCSZ00));
   UCSR0B |= ((1 << RXEN0) | (1 << TXEN0)); //enable UART
-  UBRR0L = 51; //from Table 18-8 in ATTiny841 datasheet 9600 baud
+  UBRR0L = 51; //from Table 18-8 in ATTiny841 datasheet 9600 baud at 8MHz
+  //UBRR0L = 26; //from Table 18-8 in ATTiny841 datasheet 1200 baud at 512KHz
   //UCSR0A |= (1 << U2X0);
 }
 
@@ -112,11 +116,11 @@ void blinkAltitude(void){
 		int j;
 		for (j = 0; j < altitudeBlinks[i]; j ++){
 			LED_ON;
-			delay_ms(200);
+			_delay_ms(200);
 			LED_OFF;
-			delay_ms(200);
+			_delay_ms(200);
 		}
-		delay_ms(1500);
+		_delay_ms(1500);
 	}
 }
 
@@ -133,20 +137,13 @@ int main() {
   TCCR0B |= (1 << CS02) | (1 << CS00); //Table 11-9 clk/1024 prescale
   TIMSK0 |= (1 << TOIE0); //timer 0 overflow interrupt enable
 
-  /*    TIMER 1 SETUP    */
-  //TCCR1B |= (1 << WGM12); //timer 1 CTC mode
-  //TIMSK1 |= (1 << OCIE1A); //enable CTC interrupt
-  //OCR1A = 1560; //set the CTC value for 200mS
-  //TCCR1B |= ((1 << CS10) | (1 << CS12)); //clk / 1024 prescale
-
-  DDRA |= (1 << DDA0); //LED output
+  LED_OUTPUT;
   LED_ON;
-  delay_ms(1000);
+  _delay_ms(1000);
   LED_OFF;
   ADCSRA |= (1 << ADEN); //enable ADC Vcc as reference
   ADMUXA = 0b00001101; //1.1V MUX selection, calibrated below
   power_usart1_disable(); //save power
-  //power_timer1_disable();
   uart0_init();
   SPI_Master_Init();
 
@@ -156,12 +153,12 @@ int main() {
     LED_ON;
   }
 
-  delay_ms(100);
+  _delay_ms(100);
   BMP_Normal_Mode();
-  delay_ms(100);
+  _delay_ms(100);
   BMP_Set_Calib_Vars();
-  //blinkAltitude();
-  delay_ms(bootDelay); //give time for things to settle
+  blinkAltitude();
+  _delay_ms(bootDelay); //give time for things to settle
   sei();
   int vccCal = eeprom_read_word((uint16_t * ) 0);
   BMP_Pressure_Cal = (float) BMP_Pressure();
@@ -177,31 +174,31 @@ int main() {
         uart0_printInt(vcc);
         uart0_putchar('\n');
         eeprom_write_word((uint16_t * ) 0, vcc);
-				delay_ms(100);
+				_delay_ms(100);
 
         char data = uart0_getchar(); //firmware version
         eeprom_write_word((uint16_t * ) 2, data);
         uart0_printInt(data);
         uart0_putchar('\n');
-				delay_ms(100);
+				_delay_ms(100);
 
         data = uart0_getchar(); //month
         eeprom_write_word((uint16_t * ) 4, data);
         uart0_printInt(data);
         uart0_putchar('\n');
-				delay_ms(100);
+				_delay_ms(100);
 
         data = uart0_getchar(); //day
         eeprom_write_word((uint16_t * ) 6, data);
         uart0_printInt(data);
         uart0_putchar('\n');
-				delay_ms(100);
+				_delay_ms(100);
 
         data = uart0_getchar(); //year
         eeprom_write_word((uint16_t * ) 8, data);
         uart0_printInt(data);
         uart0_putchar('\n');
-				delay_ms(100);
+				_delay_ms(100);
       }
       if (UDRData == 'd') { //download flight data
         int i;
@@ -209,48 +206,44 @@ int main() {
           uint16_t altitudeData = eeprom_read_word((uint16_t * ) i);
           uart0_printInt(altitudeData);
           uart0_putchar('\n');
-          delay_ms(5);
+          _delay_ms(5);
         }
       }
     }
 
     /*    EXPONENTIAL FILTER    */
     uint32_t altitudeNew = expWeight * BMP_Altitude() + (1.0 - expWeight) * altitudeOld;
-    altitudeLogPush(altitudeNew); //push altitudeNew into the pre launch buffer
 
     /*    DETECT LAUNCH AVERAGE    */
     if (!launch) {
-      if (altitudeNew > altitudeOld + launchTrigger) {
+      altitudeLogPush(altitudeNew); //push altitudeNew into the pre launch buffer
+      if (altitudeLog[4] > altitudeLog[0] + launchTrigger) {
         LED_OFF; //turn LED off
         cli(); //disable LED ISR
         launch = true;
         int i;
-      //for (i = 12; i < eepromIndex; i += 2){
-      	//eeprom_write_word((uint16_t * ) i, (uint16_t) altitudeLog[(i - 12) / 2]);
-      //}
-        //for (i = eepromIndex; i < 512; i += 2) {
-          //eeprom_write_word((uint16_t * ) i, (uint16_t) altitudeLog[0]);
+        for (i = 12; i < eepromIndex; i += 2){ //write altitudeLog
+      	   eeprom_write_word((uint16_t * ) i, (uint16_t) altitudeLog[(i - 12) / 2]);
+        }
+        //for (i = eepromIndex; i < 512; i += 2) {//this code can cause brownouts
+        //eeprom_write_word((uint16_t * ) i, (uint16_t) altitudeLog[0]);
         //}
         //eeprom_write_word((uint16_t * ) 12, (uint16_t) altitudeOld);
       }
     }
 
-
     /*    LOG DATA DURING LAUNCH    */
-
-    uart0_printInt(altitudeNew);
-
     if (launch) {
       if (eepromIndex < 512) {
         eeprom_write_word((uint16_t * ) eepromIndex, (uint16_t) altitudeNew);
         eepromIndex += 2;
       } else {
-		  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  		sleep_mode();
-	}
+		    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  		  sleep_mode();
+	    }
     }
 
-        altitudeOld = altitudeNew;
+    altitudeOld = altitudeNew;
 
     /*    LOW BATTERY WARNING    */
     if (!launch) {

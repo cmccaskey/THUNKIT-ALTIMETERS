@@ -1,30 +1,39 @@
-#define F_CPU 8000000UL
-
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
-#include <util/delay.h>
 #include <avr/sleep.h>
 #include <stdbool.h>
 #include <avr/power.h>
+#include <math.h>
+
+#define BMP280_S32_t int32_t
+#define BMP280_U32_t uint32_t
+
+#define BMP_CS_OUTPUT  DDRA |= (1 << DDA7)
+#define BMP_CS_LOW PORTA &= ~(1 << PA7)
+#define BMP_CS_HIGH PORTA |= (1 << PA7)
 
 #define altitudeOffset 1000
 
+BMP280_S32_t t_fine;
+float BMP_Pressure_Cal;
+unsigned short dig_T1, dig_P1;
+signed short dig_T2, dig_T3, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
+
 char SPI_RW_8(unsigned char reg_A, unsigned char reg_B) {
-  PORTA &= ~(1 << PA7); //SS low
+  BMP_CS_LOW;
   SPDR = reg_A;
   while (!(SPSR & (1 << SPIF)));
   SPDR = reg_B;
   while (!(SPSR & (1 << SPIF)));
-  PORTA |= (1 << PA7); //SS high
-  //_delay_ms(15);
+  BMP_CS_HIGH;
   return SPDR;
 }
 
 int16_t BMP_Burst_Read_16(char startReg) {
   int16_t data = 0;
-  PORTA &= ~(1 << PA7); //SS low
+  BMP_CS_LOW;
   SPDR = startReg;
   while (!(SPSR & (1 << SPIF)));
   SPDR = 0x00; //shift clock
@@ -35,12 +44,9 @@ int16_t BMP_Burst_Read_16(char startReg) {
   int16_t SPDRShift = SPDR;
   SPDRShift <<= 8;
   data |= SPDRShift; //MSB
-  PORTA |= (1 << PA7); //SS high
+  BMP_CS_HIGH;
   return data;
 }
-
-unsigned short dig_T1, dig_P1;
-signed short dig_T2, dig_T3, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9;
 
 void BMP_Set_Calib_Vars(void) {
   dig_T1 = BMP_Burst_Read_16(0x88);
@@ -57,12 +63,11 @@ void BMP_Set_Calib_Vars(void) {
   dig_P9 = BMP_Burst_Read_16(0x9E);
 }
 
-#define BMP280_S32_t int32_t
-#define BMP280_U32_t uint32_t
-
-void BMP_Normal_Mode(void) {
-  SPI_RW_8(0xF4 & ~0x80, 0b01010111); //normal mode 16X pressure 2X temperature
-  SPI_RW_8(0xF5 & ~0x80, 0b00010000); //IIR coeff. 16
+void BMP_Normal_Mode(void) {//4X pressure, 1X temperature: ~200mS (11 samples at 19.5mS avg. sample time) >= 75% step response with 6.4cm RMS noise
+  //SPI_RW_8(0xF4 & ~0x80, 0b01010111); //normal mode 16X pressure 2X temperature
+  //SPI_RW_8(0xF5 & ~0x80, 0b00010000); //IIR coeff. 16
+  SPI_RW_8(0xF4 & ~0x80, 0b00101111); //normal mode 4X pressure 1X temperature
+  SPI_RW_8(0xF5 & ~0x80, 0b00001000); //IIR coeff. 4
 }
 
 char SPI_Transfer(char c) {
@@ -73,7 +78,7 @@ char SPI_Transfer(char c) {
 
 int32_t BMP_Burst_Read_20(char start) {
   int32_t data = 0;
-  PORTA &= ~(1 << PA7); //SS low
+  BMP_CS_LOW;
   SPDR =  start | 0x80; //temp MSB
   while (!(SPSR & (1 << SPIF)));
   SPDR = 0x00;
@@ -88,14 +93,9 @@ int32_t BMP_Burst_Read_20(char start) {
   while (!(SPSR & (1 << SPIF)));
   data |= SPDR;
   data >>= 4;
-  PORTA |= (1 << PA7); //SS high
-  //_delay_ms(15);
+  BMP_CS_HIGH;
   return data;
 }
-
-
-BMP280_S32_t t_fine; 
-float BMP_Pressure_Cal;
 
 int32_t BMP_Temperature(void){
     int32_t adc_T = BMP_Burst_Read_20(0xFA);
@@ -108,9 +108,8 @@ int32_t BMP_Temperature(void){
 }
 
 uint32_t BMP_Pressure(void) {
-BMP_Temperature(); //set t_fine
-delay_ms(1);
-int32_t adc_P = BMP_Burst_Read_20(0xF7);
+  BMP_Temperature(); //set t_fine
+  int32_t adc_P = BMP_Burst_Read_20(0xF7);
   BMP280_S32_t var1, var2;
   BMP280_U32_t p;
   var1 = (((BMP280_S32_t) t_fine) >> 1) - (BMP280_S32_t) 64000;
