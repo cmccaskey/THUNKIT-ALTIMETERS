@@ -1,10 +1,12 @@
 #define USE_ULP_OSC
 
 #ifdef USE_ULP_OSC
-  #define F_CPU 250000UL
+  #define F_CPU 512000UL
 	#define UART_REG 26
-  #define TIMER_REG (1 << CS01) | (1 << CS00)
-#else
+  #define TIMER_REG (1 << CS01)
+#endif
+
+#ifndef USE_ULP_OSC
   #define F_CPU 8000000UL
   #define UART_REG 51
   #define TIMER_REG (1 << CS02) | (1 << CS00)
@@ -47,7 +49,8 @@ bool launch = false;
 
 void SPI_Master_Init(void) {
   DDRA |= (1 << DDA4) | (1 << DDA6);
-  SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0);
+  //SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0);
+  SPCR = (1 << SPE) | (1 << MSTR);
   BMP_CS_OUTPUT;
   BMP_CS_HIGH;
 }
@@ -160,12 +163,12 @@ int main() {
   while (ID != 0x58) {
     LED_ON;
   }
-
+  
   _delay_ms(100);
   BMP_Normal_Mode();
   _delay_ms(100);
   BMP_Set_Calib_Vars();
-  //blinkAltitude();
+  blinkAltitude();
   _delay_ms(bootDelay); //give time for things to settle
   sei();
   int vccCal = eeprom_read_word((uint16_t * ) 0);
@@ -173,7 +176,6 @@ int main() {
   uint32_t altitudeOld = BMP_Altitude(); //init this variable
   int eepromIndex = 20;
   while (1) {
-    //uart0_putchar('\n');
     /*    CHECK UART    */
     if ((UCSR0A & (1 << RXC0))) {
       char UDRData = UDR0;
@@ -225,7 +227,7 @@ int main() {
     /*    DETECT LAUNCH AVERAGE    */
     if (!launch) {
       altitudeLogPush(altitudeNew); //push altitudeNew into the pre launch buffer
-      if (altitudeLog[4] > altitudeLog[0] + launchTrigger) {
+      if (altitudeLog[4] > altitudeLog[0] + launchTrigger && altitudeLog[0] != 0) {
         LED_OFF; //turn LED off
         cli(); //disable LED ISR
         launch = true;
@@ -253,6 +255,8 @@ int main() {
 
     altitudeOld = altitudeNew;
 
+uart0_printInt20_t(altitudeNew);
+
     /*    LOW BATTERY WARNING    */
     if (!launch) {
       int vcc = measureVcc();
@@ -267,7 +271,17 @@ int main() {
 ISR(TIMER0_OVF_vect) { //blinks status LED
   cli();
   LEDTimer++;
-  if (!launch && (LEDTimer > 100 && !lowBattery) || (LEDTimer > 50 && lowBattery)) {
+  int delay;
+  if (LED){
+    delay = 5;
+  } else {
+    delay = 10;
+  }
+  lowBattery = false; //testing remove
+  if (!lowBattery){
+    delay *= 10;
+  }
+  if (!launch && LEDTimer > delay) {
     LEDTimer = 0;
     if (LED) {
       LED = false;
