@@ -27,6 +27,13 @@ flash_ulp:
 	avr-objcopy -j .text -j .data -O ihex $(TARGET).o $(TARGET).hex
 	$(AVRDUDE) -e -U flash:w:$(TARGET).hex 
 
+flash_ulp_fast:
+	$(AVRDUDE) -U lfuse:w:$(LFUSE):m -U hfuse:w:$(HFUSE):m -U efuse:w:$(EFUSE):m
+	$(CC) -Os -mmcu=$(DEVICE) $(SOURCE) -o $(TARGET).o
+	avr-objcopy -j .text -j .data -O ihex $(TARGET).o $(TARGET).hex
+	$(AVRDUDE) -B1 -e -U flash:w:$(TARGET).hex #use fast upload
+	$(AVRDUDE) -U lfuse:w:$(LFUSE_ULP):m -U hfuse:w:$(HFUSE):m -U efuse:w:$(EFUSE_ULP):m
+
 fuses:
 	$(AVRDUDE) -U lfuse:w:$(LFUSE):m -U hfuse:w:$(HFUSE):m -U efuse:w:$(EFUSE):m
 

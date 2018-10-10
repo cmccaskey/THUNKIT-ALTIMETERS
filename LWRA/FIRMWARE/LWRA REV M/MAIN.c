@@ -1,4 +1,14 @@
-#define F_CPU 8000000UL
+#define USE_ULP_OSC
+
+#ifdef USE_ULP_OSC
+  #define F_CPU 250000UL
+	#define UART_REG 26
+  #define TIMER_REG (1 << CS01) | (1 << CS00)
+#else
+  #define F_CPU 8000000UL
+  #define UART_REG 51
+  #define TIMER_REG (1 << CS02) | (1 << CS00)
+#endif
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -50,9 +60,7 @@ void uart0_putchar(char c) {
 void uart0_init(void) {
   UCSR0C |= ((1 << UCSZ01) | (1 << UCSZ00));
   UCSR0B |= ((1 << RXEN0) | (1 << TXEN0)); //enable UART
-  UBRR0L = 51; //from Table 18-8 in ATTiny841 datasheet 9600 baud at 8MHz
-  //UBRR0L = 26; //from Table 18-8 in ATTiny841 datasheet 1200 baud at 512KHz
-  //UCSR0A |= (1 << U2X0);
+  UBRR0L = UART_REG;
 }
 
 char uart0_getchar(void) {
@@ -134,7 +142,7 @@ void altitudeLogPush(uint32_t push){
 
 int main() {
   /*    TIMER 0 SETUP    */
-  TCCR0B |= (1 << CS02) | (1 << CS00); //Table 11-9 clk/1024 prescale
+  TCCR0B |= TIMER_REG; //Table 11-9 clk/1024 prescale
   TIMSK0 |= (1 << TOIE0); //timer 0 overflow interrupt enable
 
   LED_OUTPUT;
@@ -157,7 +165,7 @@ int main() {
   BMP_Normal_Mode();
   _delay_ms(100);
   BMP_Set_Calib_Vars();
-  blinkAltitude();
+  //blinkAltitude();
   _delay_ms(bootDelay); //give time for things to settle
   sei();
   int vccCal = eeprom_read_word((uint16_t * ) 0);
