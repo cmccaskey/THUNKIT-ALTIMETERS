@@ -259,7 +259,7 @@ int main() {
 ISR(TIMER0_OVF_vect) { //blinks status LED
   cli();
   LEDTimer++;
-  if (LED && (!launch && (LEDTimer > 5 && !lowBattery)) || !LED && (!launch && (LEDTimer > 50 && !lowBattery)) || (LEDTimer > 10 && lowBattery)) {
+  if (!launch && (LEDTimer > 100 && !lowBattery) || (LEDTimer > 50 && lowBattery)) {
     LEDTimer = 0;
     if (LED) {
       LED = false;

@@ -1,2 +1,4 @@
 .*
+/SOFTWARE/build
+/SOFTWARE/dist
 !/.gitignore
